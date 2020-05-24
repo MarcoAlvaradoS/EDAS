@@ -1,0 +1,1516 @@
+{
+  library(shiny)
+  library(shinyBS)
+  library(shinydashboard)
+  library(shinyWidgets)
+  library(shinyjs)
+  library(rintrojs)
+  library(shinycssloaders)
+  library(ggplot2)
+  library(GGally)
+  library(FactoMineR)
+  library(polycor)
+  library(corrplot)
+  library(dplyr)
+  library(tidyr)
+  library(DT)
+  library(missForest)
+  library(DataExplorer)
+  library(tidyverse)
+  library(gganimate)
+  library(gifski)
+  library(factoextra)
+  library(olsrr)
+  library(keras)
+  library(caret)
+  library(lattice)
+  library(rsample)
+  library(varhandle)
+  theme_set(theme_bw())
+}
+library(EDAS)
+
+ui <- dashboardPage(
+
+  skin = "purple",
+  title = "Analisis de Datos",
+
+  #HEADER ----------------------------------------------------------------
+
+  dashboardHeader(
+    title = strong("Data Analysis"),
+    titleWidth = 300
+  ),
+
+  dashboardSidebar(),
+
+  #BODY-------------------------------------------------------------------
+
+  dashboardBody(
+    tags$head(
+      tags$link(
+        rel = "stylesheet",
+        type = "text/css")
+    ),
+
+    useShinyjs(),
+    introjsUI(),
+
+    fluidRow(
+      column(
+        width = 12,
+        introBox(
+          bsButton("CD",
+                   label = "Limpia",
+                   icon = icon("bar-chart-o"),
+                   style = "info"),
+          bsButton("EDA",
+                   label = "EXPLORA",
+                   icon = icon("bar-chart-o"),
+                   style = "info"),
+          bsButton("Anim",
+                   label = "Animaciones",
+                   icon = icon("bar-chart-o"),
+                   style = "info"),
+          bsButton("PCA",
+                   label = "PCA",
+                   icon = icon("list-alt"),
+                   style = "info"),
+          bsButton("CA",
+                   label = "CA",
+                   icon = icon("list-alt"),
+                   style = "info"),
+          bsButton("GLM",
+                   label = "MODELO LINEAL",
+                   icon = icon("cogs"),
+                   style = "info"),
+          bsButton("NN",
+                   label = "REDES NEURONALES",
+                   icon = icon("code-fork"),
+                   style = "info")
+        )
+
+      )
+    ),
+
+    fluidRow(
+      div(
+        id = "CD_panel",
+        column(
+          width = 4,
+          uiOutput("BDD")
+        ),
+        column(
+          width = 8,
+          uiOutput("View"),
+          uiOutput("SummaryCD")
+        )
+      )
+    ),
+
+    fluidRow(
+      div(
+        id = "EDA_panel",
+        column(
+          width = 6,
+          uiOutput("Summary"),
+          uiOutput("SumGraf")
+        ),
+        column(
+          width = 6,
+          uiOutput("CorVars"),
+          uiOutput("GrafVars")
+        )
+      )
+    ),
+
+    fluidRow(
+      div(
+        id = "Anim_panel",
+        column(
+          width = 12,
+          uiOutput("Anim_Opt"),
+          uiOutput("Anim_Plot")
+        )
+      )
+    ),
+
+    fluidRow(
+      div(
+        id = "PCA_panel",
+        column(
+          width = 4,
+          uiOutput("HacerPCA"),
+          uiOutput("TipsPCA")
+        ),
+        column(
+          width = 8,
+          uiOutput("GrafPCA"),
+          uiOutput("SumsPCA")
+        )
+      )
+    ),
+
+    fluidRow(
+      div(
+        id = "CA_panel",
+        column(
+          width = 4,
+          uiOutput("HacerCA"),
+          uiOutput("TipsCA")
+        ),
+        column(
+          width = 8,
+          uiOutput("GrafCA"),
+          uiOutput("SumsCA")
+        )
+      )
+    ),
+
+    fluidRow(
+      div(
+        id = "GLM_panel",
+        column(
+          width = 12,
+          uiOutput("SummaryGLM"),
+        ),
+        column(
+          width = 6,
+          uiOutput("NoSeGLM"),
+          uiOutput("GrafGLM")
+        )
+      )
+    ),
+
+    fluidRow(
+      div(
+        id = "NN_panel",  #Aqui va lo de Redes Neuronales
+        column(
+          width = 12,
+          uiOutput("NN1")   
+        ),
+        column(
+          width = 12,
+          uiOutput("NN2")   
+        )
+      )
+    )
+  )
+)
+
+#SERVER---------------------------------------------------------
+
+
+server <- function(input, output, session) {
+
+  update_all <- function(x) {
+    updateSelectInput(session, "tab",
+                      choices = c("", "Limpiar Dataset","Explorar Dataset", "Animated Plot","Analizar Componentes Principales",
+                                  "Analizar Correspondencias","Modelos Lineales", "Redes Neuronales"),
+                      label = "",
+                      selected = x
+    )
+  }
+
+  #----------Observers----------------
+  observeEvent(input$CD, {
+    update_all("Limpiar Dataset")
+  })
+
+  observeEvent(input$EDA, {
+    update_all("Explorar Dataset")
+  })
+
+  observeEvent(input$Anim, {
+    update_all("Animated Plot")
+  })
+
+  observeEvent(input$PCA, {
+    update_all("Analizar Componentes Principales")
+  })
+
+  observeEvent(input$CA, {
+    update_all("Analizar Correspondencias")
+  })
+
+  observeEvent(input$GLM, {
+    update_all("Modelos Lineales")
+  })
+  observeEvent(input$NN, {
+    update_all("Redes Neuronales")
+  })
+
+  observeEvent("", {
+    hide("tab")
+  })
+
+  observeEvent("", {
+    show("CD_panel")
+    hide("EDA_panel")
+    hide("Anim_panel")
+    hide("PCA_panel")
+    hide("CA_panel")
+    hide("GLM_panel")
+    hide("NN_panel")
+  }, once = TRUE)
+
+  observeEvent(input$CD, {
+    show("CD_panel")
+    hide("EDA_panel")
+    hide("Anim_panel")
+    hide("PCA_panel")
+    hide("CA_panel")
+    hide("GLM_panel")
+    hide("NN_panel")
+  })
+
+  observeEvent(input$EDA, {
+    show("EDA_panel")
+    hide("CD_panel")
+    hide("Anim_panel")
+    hide("PCA_panel")
+    hide("CA_panel")
+    hide("GLM_panel")
+    hide("NN_panel")
+  })
+
+  observeEvent(input$Anim, {
+    show("Anim_panel")
+    hide("EDA_panel")
+    hide("CD_panel")
+    hide("PCA_panel")
+    hide("CA_panel")
+    hide("GLM_panel")
+    hide("NN_panel")
+  })
+
+  observeEvent(input$PCA, {
+    show("PCA_panel")
+    hide("CD_panel")
+    hide("EDA_panel")
+    hide("Anim_panel")
+    hide("CA_panel")
+    hide("GLM_panel")
+    hide("NN_panel")
+  })
+
+  observeEvent(input$CA, {
+    show("CA_panel")
+    hide("CD_panel")
+    hide("EDA_panel")
+    hide("Anim_panel")
+    hide("PCA_panel")
+    hide("GLM_panel")
+    hide("NN_panel")
+  })
+
+  observeEvent(input$GLM, {
+    show("GLM_panel")
+    hide("CD_panel")
+    hide("EDA_panel")
+    hide("Anim_panel")
+    hide("PCA_panel")
+    hide("CA_panel")
+    hide("NN_panel")
+  })
+  observeEvent(input$NN, {
+    show("NN_panel")
+    hide("CD_panel")
+    hide("EDA_panel")
+    hide("Anim_panel")
+    hide("PCA_panel")
+    hide("CA_panel")
+    hide("GLM_panel")
+  })
+
+  ##### CD UI #####-------------------------------------------------------------------
+
+  output$BDD = renderUI({
+    div(
+      style = "position : relative",
+      tabBox(
+        id = "SummaryBox",
+        width = NULL,
+        height = 1500,
+        tabPanel(
+          title = "Cargar base de datos",
+          div(style = "position : static",
+              fileInput("datos", "Cargar archivo"),
+              helpText("Solo archivos csv"),
+              tags$hr(), #Un espacio en blanco
+
+              h5(helpText("Seleccionar abajo los parametros de read.csv")),
+              checkboxInput("header", "Header", value=TRUE),
+              checkboxInput("stringAsFactors", "stringAsFactors", value=TRUE),
+              actionBttn("CargarButton", "Cargar",style = "jelly", size = "sm" ),
+              tags$hr(), #Un espacio en blanco
+              h5(helpText("Seleccionar acciones para limpiar base")),
+              checkboxInput("all_miss_col", "Eliminar columnas vacias", value=FALSE),
+              conditionalPanel(condition = 'input.all_miss_col',
+                               numericInput("perc_drop", "Porcentaje de NA para eliminar", min = 80, max = 100, value = 90)
+              ),
+              checkboxInput("cambio_prop", "Cambiar tipo de columnas", value=FALSE),
+              conditionalPanel(condition = 'input.cambio_prop',
+                               helpText(h5("Escoge las columnas a cambiar")),
+                               column(width = 4,
+                                      checkboxGroupInput("cambio_prop_cols", label = "", choices = character(0))
+                               ),
+                               column(width = 4,
+                                      checkboxGroupInput("cambio_prop_cols2", label = "", choices = character(0))
+                               ),
+                               column(width = 4,
+                                      checkboxGroupInput("cambio_prop_cols3", label = "", choices = character(0))
+                               )
+              ),
+              conditionalPanel(condition = 'input.cambio_prop',
+                               radioGroupButtons("cambio_prop_choise", label = "Escoger nueva tipo", choices = as.list(c("factor", "double")), selected = "factor")
+              ),
+              checkboxInput("imp_data", "Imputar datos faltantes", value=FALSE),
+              conditionalPanel(condition = 'input.imp_data',
+                               radioGroupButtons("imp_data_choise", label = "Escoger metodo de imputacion", choices = as.list(c("omit")))
+              ),
+              actionBttn("CleanButton", "Dale",style = "jelly", size = "sm" ),
+              tags$hr(),
+              helpText("Si se escoge una variable de estudio numerica, entonces se realiza un an?lisis m?s extenso de la base."),
+              selectInput("var_est", label = "Selecciona la variable de estudio", choices = character(0)),
+              actionBttn("varEstButton", "Seleccionar",style = "jelly", size = "sm" ),
+              tags$hr(),
+              checkboxInput("elim_row", "Eliminar las siguientes observaciones", value=FALSE),
+              conditionalPanel(condition = 'input.elim_row',
+                               numericInput("elim_row1", "Columna a eliminar", min = 1, max = 10, value = 1)
+              ),
+              checkboxInput("elim_col", "Eliminar las siguientes columnas", value=FALSE),
+              conditionalPanel(condition = 'input.elim_col',
+                               helpText(h5("Escoge las columnas a eliminar")),
+                               column(width = 4,
+                                      checkboxGroupInput("elim_col1", label = "", choices = character(0))
+                               ),
+                               column(width = 4,
+                                      checkboxGroupInput("elim_col2", label = "", choices = character(0))
+                               ),
+                               column(width = 4,
+                                      checkboxGroupInput("elim_col3", label = "", choices = character(0))
+                               )
+              ),
+              actionBttn("Clean2Button", "Borrar",style = "jelly", size = "sm" )
+          )
+        )
+      )
+    )
+
+  })
+
+  output$View = renderUI({
+    div(
+      style = "position : relative",
+      tabBox(
+        id = "SummaryBox",
+        width = NULL,
+        height = 650,
+        tabPanel(
+          title = "Visualizar base de datos",
+          div(style = "position : static",
+              dataTableOutput("ViewBDD")
+          )
+        )
+      )
+    )
+
+  })
+
+  output$SummaryCD = renderUI({
+    div(
+      style = "position : relative",
+      tabBox(
+        id = "SummaryBox",
+        width = NULL,
+        height = 550,
+        tabPanel(
+          title = "Resumen de la base de datos",
+          div(style = "position : static",
+              verbatimTextOutput("SumCD")
+          )
+        )
+      )
+    )
+
+  })
+  ##### EDA UI #####-------------------------------------------------------------------
+
+  output$Summary = renderUI({ #asi declaras las UI, que en tu caso son 1NN, 2NN y asi
+    div(
+      style = "position : relative",
+      tabBox(
+        id = "SummaryBox",
+        width = NULL,
+        height = 260,
+        tabPanel(
+          title = "Analisis de una variable",
+          fluidRow(
+            div(
+              column(
+                width = 6,
+                selectInput("var1", "Variable:", choices = character(0)),
+                selectInput("Graf1", "Quieres ver:", choices = character(0) ),
+                actionBttn("unavarButton", "Dale",style = "jelly", size = "sm" )
+              ),
+              column(
+                width = 6,
+                selectInput("CatLev", "Factor Level", choices = character(0)),
+                h6("Esto es para analizar las relaciones entre este nivel y las otras variables")
+              )
+            )
+          )
+        )
+      )
+    )
+
+  })
+
+  output$SumGraf = renderUI({
+
+    div(
+      style = "position : static",
+      tabBox(
+        id = "SummaryGrafBox",
+        width = NULL,
+        height = 540,
+        tabPanel(
+          title = "Grafica",
+          div(style = "position : static",
+              withSpinner(plotOutput("Sumgrafic"))
+          )
+        )
+      )
+    )
+  })
+
+  output$CorVars = renderUI({
+
+    div(
+      style = "position : static",
+      tabBox(
+        id = "SummaryVarsBox",
+        width = NULL,
+        height = 350,
+        tabPanel(
+          title = "Analisis entre variables",
+          fluidRow(
+            div(
+              column(
+                width = 6,
+                selectInput("vars1", "Variable 1:", choices = character(0)),
+                selectInput("vars2", "Variable 2:", choices = character(0)),
+                selectInput("Graf1y2", "Quieres ver:", choices =  character(0)),
+                actionBttn("mvarsButton", "Dale", style = "jelly", size = "sm")
+              ),
+              column(
+                width = 6,
+                selectInput("ColorSum", "Color para Scatter", choices = character(0)),
+                selectInput("SizeSum", "Size para Scatter", choices = character(0)),
+                actionBttn("TotalCorr", "CorMat", style = "jelly", size = "sm")
+              )
+            )
+          )
+        )
+      )
+    )
+  })
+
+  output$GrafVars = renderUI({
+
+    div(
+      style = "position : static",
+      tabBox(
+        id = "VarsgrafBox",
+        width = NULL,
+        height = 450,
+        tabPanel(
+          title = "Algo de info:",
+          div(style = "position : static",
+              verbatimTextOutput("EDAHelp"),
+              verbatimTextOutput("SumText")
+          )
+        ),
+        tabPanel(
+          title = "Rel. Cat",
+          div(style = "position = static",
+              dataTableOutput("RelCat"),
+              h6("Se muestran solo las relaciones que caracterizan a esta variable con significancia del 0.05%")
+          )
+        ),
+        tabPanel(
+          title = "Rel. Num",
+          div(style = "position : static",
+              dataTableOutput("RelNum"),
+              h6("Se muestran solo las relaciones que caracterizan a esta variable con significancia del 0.05%")
+          )
+        )
+      )
+    )
+  })
+
+  ##### Anim #####----------------------------------------------------------------
+
+  output$Anim_Opt = renderUI({
+
+    div(
+      style = "position : static",
+      tabBox(
+        id = "Anim_Opts",
+        width = NULL,
+        height = 300,
+        tabPanel(
+          title = "Graficas animadas",
+          div(style = "position : static",
+              column(width = 6,
+                     selectInput("var1_anim", label = "Variable 1", choices = character(0)),
+                     checkboxInput("var2_check_anim", label = "Agregar segunda variable", value = FALSE),
+                     conditionalPanel('input.var2_check_anim',
+                                      selectInput("var2_anim", "Variable 2", choices = character(0)))),
+              column(width = 4,
+                     selectInput("group_anim", "Animar por", choices = character(0)),
+                     selectInput("type_graf_anim", "Tipo de grafica", choices = character(0)),
+                     actionBttn("AnimButton", "Graficar", style = "jelly"))
+          )
+        )
+      )
+    )
+  })
+
+  output$Anim_Plot = renderUI({
+
+    div(
+      style = "position : static",
+      tabBox(
+        id = "SummaryGrafBox",
+        width = NULL,
+        height = 700,
+        tabPanel(
+          title = "Grafica",
+          div(style = "position : static",
+              withSpinner(imageOutput("Anim_graph"))
+          )
+        )
+      )
+    )
+  })
+
+  ##### PCA UI#####----------------------------------------------------------------
+
+  output$HacerPCA = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "SummaryPCABox",
+        width = NULL,
+        height = 500,
+        tabPanel(
+          title = "Principal Component Analysis",
+          div(style = "position : static",
+              h5("Opciones para Biplot:"),
+              radioButtons("BiplotGr", "Graficamos:", choiceNames = list("Variables", "Indivs", "Biplot"),
+                           choiceValues = c("var", "ind", "biplot")),
+              checkboxGroupInput("BiplotLabs", "Labels en:", choiceNames = list("Variables", "Indivs"),
+                                 choiceValues = c("var", "ind") ),
+              selectInput("BiplotHab", "Agrupamos por:", choices = character(0)),
+              h5("*Recuerda que PCA se hace solo sobre variables numericas. Para analizar variables categoricas, ve a CA"),
+              actionBttn("PCAButton", "Haz PCA", style = "jelly", size = "sm"),
+              actionBttn("GrafPCAButton","Haz Biplot", style = "jelly", size = "sm")
+          )
+        )
+      )
+    )
+  })
+
+  output$GrafPCA = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "grafPCABox",
+        width = NULL,
+        height = 500,
+        tabPanel(
+          title = "Scree Plot",
+          div(style = "position : static",
+              plotOutput("screePCA")
+          )
+        ),
+        tabPanel(
+          title = "PCA Plot",
+          div(style = "position : static",
+              plotOutput("PlotPCA")
+          )
+        )
+      )
+    )
+  })
+
+  output$SumsPCA = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "sumsPCABox",
+        width = NULL,
+        height = 450,
+        tabPanel(
+          title = "Variance",
+          div(style = "position : static",
+              dataTableOutput("cumvarPCA"))
+        ),
+        tabPanel(
+          title = "Coefs",
+          div(style = "position : static",
+              h6("Coeficientes por dimension para cada variable")),
+          dataTableOutput("coefsPCA")
+        ),
+        tabPanel(
+          title = "Scores",
+          div(style = "position : static",
+              dataTableOutput("scoresPCA"),
+              h6("Mostrando las primeras 100 entradas, puedes descargar aqui la base completa como csv:"),
+              downloadButton("downloadPCA", "Descarga"))
+        )
+      )
+    )
+  })
+
+  output$TipsPCA = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "TipsPCABox",
+        width = NULL,
+        height = 450,
+        tabPanel(
+          title = "Resumen",
+          div(style = "position : static",
+              h5(textOutput("ResumenPCA"), align = "justify"),
+              h5(textOutput("Resumen2PCA"), align = "justify")
+          )
+        )
+      )
+    )
+  })
+
+  ##### CA UI#####----------------------------------------------------------------
+
+  output$HacerCA = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "SummaryCABox",
+        width = NULL,
+        height = 500,
+        tabPanel(
+          title = "Correspondence Analysis",
+          div(style = "position : static",
+              h5("Opciones para Biplot:"),
+              radioButtons("BiplotGr2", "Graficamos:", choiceNames = list("Variables", "Indivs", "Biplot"),
+                           choiceValues = c("var", "ind", "biplot")),
+              checkboxGroupInput("BiplotLabs2", "Labels en:", choiceNames = list("Variables", "Indivs"),
+                                 choiceValues = c("var", "ind") ),
+              selectInput("BiplotHab2", "Agrupamos por:", choices = character(0)),
+              h5("*Recuerda que CA se hace solo sobre variables tipo factor. Para analizar variables numericas, ve a PCA"),
+              actionBttn("CAButton", "Haz CA", style = "jelly", size = "sm"),
+              actionBttn("GrafCAButton","Haz Biplot", style = "jelly", size = "sm")
+          )
+        )
+      )
+    )
+  })
+
+  output$GrafCA = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "grafCABox",
+        width = NULL,
+        height = 500,
+        tabPanel(
+          title = "Scree Plot",
+          div(style = "position : static",
+              plotOutput("screeCA")
+          )
+        ),
+        tabPanel(
+          title = "CA Plot",
+          div(style = "position : static",
+              plotOutput("PlotCA")
+          )
+        )
+      )
+    )
+  })
+
+  output$SumsCA = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "sumsCABox",
+        width = NULL,
+        height = 450,
+        tabPanel(
+          title = "Variance",
+          div(style = "position : static",
+              dataTableOutput("cumvarCA"))
+        ),
+        tabPanel(
+          title = "Coefs",
+          div(style = "position : static",
+              h6("Coeficientes por dimension para cada variable")),
+          dataTableOutput("coefsCA")
+        ),
+        tabPanel(
+          title = "Scores",
+          div(style = "position : static",
+              dataTableOutput("scoresCA"),
+              h6("Mostrando las primeras 100 entradas, puedes descargar aqui la base completa como csv:"),
+              downloadButton("downloadCA", "Descarga"))
+        )
+      )
+    )
+  })
+
+  output$TipsCA = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "TipsCABox",
+        width = NULL,
+        height = 450,
+        tabPanel(
+          title = "Resumen",
+          div(style = "position : static",
+              h5(textOutput("ResumenCA"), align = "justify"),
+              h5(textOutput("Resumen2CA"), align = "justify")
+          )
+        )
+      )
+    )
+  })
+
+
+
+
+  ##### ML UI#####------------------------------------------
+  output$SummaryGLM = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "CrearMod",
+        width = NULL,
+        height = 700,
+        tabPanel(
+          title = "Crear modelo",
+          div(style = "position : static",
+              h5("Opciones para el modelo:"),
+              column(width = 4,
+                     helpText(h5("Opciones b?sicas")),
+                     selectInput("var_est_Mod", "Variable de estudio", choices = character((0))),
+                     helpText(h5("Escoge las variables explicativas")),
+                     checkboxInput(inputId = "intr_mod", label = "Intercepto?", value = F),
+                     column(width = 4,
+                            checkboxGroupInput("var_exp1", label = "", choices = character(0))
+                     ),
+                     column(width = 4,
+                            checkboxGroupInput("var_exp2", label = "", choices = character(0))
+                     ),
+                     column(width = 4,
+                            checkboxGroupInput("var_exp3", label = "", choices = character(0))
+                     ),
+                     selectInput("method_mod", "Tipo de modelo", choices = as.list(c("lm", "glm", "ranger","glmnet"))),
+                     sliderInput("percTest_mod", "Porcentaje de datos de entrenamiento para el modelo", min = 50, max = 100, value = 70, step = 1),
+              ),
+              column(width = 4,
+                     helpText(h5("Opciones medias")),
+                     checkboxInput(inputId = "ln_vars_mod", label = "Tranformacion logaritmica a variables", value = F),
+                     conditionalPanel(condition = 'input.ln_vars_mod',
+                                      helpText(h5("Escoge las columnas a transformar")),
+                                      column(width = 4,
+                                             checkboxGroupInput("trans_prop_mod1", label = "", choices = character(0))
+                                      ),
+                                      column(width = 4,
+                                             checkboxGroupInput("trans_prop_mod2", label = "", choices = character(0))
+                                      ),
+                                      column(width = 4,
+                                             checkboxGroupInput("trans_prop_mod3", label = "", choices = character(0))
+                                      )
+                     ),
+                     selectInput("trC_method_mod", "Metodo de remuestreo", choices = as.list(c("none", "boot", "cv", "repeatedcv"))),
+                     sliderInput("trC_num_mod", "Numero de carpetas", min = 0, max = 50, value = 5, step = 1),
+                     sliderInput("trC_rep_mod", "Numero de repeticiones", min = 0, max = 50, value = 5, step = 1),
+                     actionBttn("ModButton","Crear modelo", style = "jelly", size = "sm")
+              ),
+              column(width = 4,
+                     
+              )
+          )
+        )
+      )
+    )
+  })
+  ##### NN UI #####----------------------------------
+  output$NN1 = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "OptNN",
+        width = NULL,
+        height = 700,
+        tabPanel(
+          title = "Neural Network",
+          div(style = "position : static",
+              h5("Opciones para la red neuronal:"),
+              helpText(h5("Recuerda que las unidades de tu ultima capa por default es en numero de categorias de tu variable de estudio.")),
+              column(width = 3,
+                    selectInput("var_est_NN", "Variable de estudio", choices = character((0))),
+                    sliderInput("vPerc_NN", "Porcentaje de datos de entrenamiento para el modelo", min = 70, max = 100, value = 70, step = 1),
+                    sliderInput("unitsE1_NN", "Numero de neuronas de la primera capa", min = 1, max = 1000, value = 100, step = 1),
+                    selectInput("activationE1_NN", "Funcion de activacion de la primera capa", choices = as.list(c("relu", "softmax", "sigmoid", "softplus", "softsing", "tanh", "selu", "elu", "exponential")))
+              ),
+              column(width = 3,
+                     checkboxInput("NN_1", label = "Agregar capa", value = F),
+                     conditionalPanel("input.NN_1",
+                                      sliderInput("lDrop1_NN", "Porcentaje del primer drop", min = 0, max = 70, value = 20, step = 1),
+                                      sliderInput("unitsE2_NN", "Numero de neuronas de la segunda capa", min = 1, max = 1000, value = NULL, step = 1),
+                                      selectInput("activationE2_NN", "Funcion de activacion de la segunda capa", choices = as.list(c("relu", "softmax", "sigmoid", "softplus", "softsing", "tanh", "selu", "elu", "exponential")), selected = NULL)
+                     )
+              ),
+              column(width = 3,
+                     conditionalPanel("input.NN_1",
+                     checkboxInput("NN_2", label = "Agregar capa", value = F),
+                     conditionalPanel("input.NN_2",
+                                      sliderInput("lDrop2_NN", "Porcentaje del segundo drop", min = 0, max = 70, value = 20, step = 1),
+                                      sliderInput("unitsE3_NN", "Numero de neuronas de la tercera capa", min = 1, max = 1000, value = NULL, step = 1),
+                                      selectInput("activationE3_NN", "Funcion de activacion de la tercera capa", choices = as.list(c("relu", "softmax", "sigmoid", "softplus", "softsing", "tanh", "selu", "elu", "exponential")), selected = NULL)
+                     )
+                     )
+              ),
+              column(width = 3,
+                     conditionalPanel("input.NN_1",
+                     numericInput("lDrop3_NN", "Porcentaje del tercer drop", min = 0, max = 70, value = 20, step = 1),
+                     ),
+                     #numericInput("unitsE4_NN", "Numero de neuronas de la capa Final", min = 1, max = 1000, value = 100, step = 1),
+                     selectInput("activationE4_NN", "Funcion de activacion de la capa Final", choices = as.list(c("relu", "softmax", "sigmoid", "softplus", "softsing", "tanh", "selu", "elu", "exponential"))),
+                     sliderInput("epochsE_NN", "Epochs", min = 50, max = 1000, value = 100, step = 1),
+                     sliderInput("batch_sizeE_NN", "Batch Size", min = 1, max = 100, value = 32, step = 1),
+                     sliderInput("validation_splitE_NN", "Porcentaje de datos de validacion para la red", min = 0, max = 30, value = 0, step = 1),
+                     actionBttn("NNButton","Crear red", style = "jelly", size = "sm")
+              )
+          )
+        )
+      )
+    )
+  })
+
+  output$NN2 = renderUI({
+    div(
+      style = "position : static",
+      tabBox(
+        id = "Neural network 2",
+        width = NULL,
+        height = 500,
+        tabPanel(
+          title = "Resultados Neural Network",
+          div(style = "position : static",
+              column(width = 4,
+                dataTableOutput("NN_Data"),
+              ),
+              column(width = 4,
+                plotOutput("NN_Plot")
+              ),
+              column(width = 4,
+                verbatimTextOutput("NN_Summ")
+              )
+          )
+        )
+      )
+    )
+  })
+  ##### CD SERVER #####-----------------------------------------------------------------------------------------------------
+
+  #Inicializamos la base
+  data1 <- reactiveValues(base = NULL)
+  dataCar <- reactiveValues(value = FALSE)
+  #Cargamos la base
+  #Primer boton
+  observeEvent(input$CargarButton,{
+    output$ViewBDD = renderDataTable ({
+      isolate({
+        data1 <<- NULL
+        fileb <- input$datos
+        if(is.null(fileb)){return()}
+        data1 <<- read.csv(file= fileb$datapath, header = input$header, stringsAsFactors = input$stringAsFactors)
+        data1 <<- data1[,-1]
+
+        data1 <<- cambio_prop(dataset = data1, columns = which(sapply(data1, class)== "logical"), prop = "factor")
+        data1 <<- cambio_prop(dataset = data1, columns = which(sapply(data1, class)== "integer"), prop = "double")
+        datatable(data1, options = list(scrollX = T, pageLength = 10))
+      })
+    })
+
+    output$SummaryCD <- renderPrint({
+      updateCheckboxGroupInput(session, "cambio_prop_cols", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+      updateCheckboxGroupInput(session, "cambio_prop_cols2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+      updateCheckboxGroupInput(session, "cambio_prop_cols3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+      updateCheckboxGroupInput(session, "elim_col1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+      updateCheckboxGroupInput(session, "elim_col2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+      updateCheckboxGroupInput(session, "elim_col3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+      updateSelectInput(session, "var_est", choices = as.list(c("NULL", names(data1))), selected = "NULL")
+      updateSelectInput(session, "var1", choices = as.list(names(data1)))
+      updateSelectInput(session, "vars1", choices = as.list(names(data1)))
+      updateSelectInput(session, "vars2", choices = as.list(names(data1)))
+      updateSelectInput(session, "ColorSum", choices = as.list(c("NULL",names(data1))))
+      updateSelectInput(session, "SizeSum", choices = as.list(c("NULL",names(data1))))
+      updateSelectInput(session, "var1_anim", choices = as.list(names(data1)))
+      updateSelectInput(session, "var2_anim", choices = as.list(names(data1)))
+      updateSelectInput(session, "group_anim", choices = as.list(names(which(sapply(data1,class)== "factor"))))
+      updateSelectInput(session, "BiplotHab", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+      updateSelectInput(session, "BiplotHab2", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+      updateSelectInput(session, "var_est_NN", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+      updateSelectInput(session, "var_est_Mod", choices = as.list(names(data1)))
+      updateCheckboxGroupInput(session, "var_exp1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+      updateCheckboxGroupInput(session, "var_exp2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+      updateCheckboxGroupInput(session, "var_exp3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+      updateCheckboxGroupInput(session, "trans_prop_mod1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+      updateCheckboxGroupInput(session, "trans_prop_mod2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+      updateCheckboxGroupInput(session, "trans_prop_mod3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+      
+      isolate(Summ_all_data(data1))
+    })
+    dataCar$value <<- TRUE
+  })
+
+  #Este es el segundo boton
+  observeEvent(input$CleanButton,{
+    if(is.null(input$datos)){return()}
+    output$ViewBDD = renderDataTable ({
+      isolate({
+        if(input$all_miss_col){data1 <<- all_miss_col(data1, input$perc_drop)}
+        if(input$cambio_prop){data1 <<- cambio_prop(data1, c(input$cambio_prop_cols, input$cambio_prop_cols2,input$cambio_prop_cols3), input$cambio_prop_choise)}
+        if(input$imp_data){data1 <<- imp_data(as.data.frame(data1), input$imp_data_choise)}
+        datatable(data1, options = list(scrollX = T, pageLength = 10))})
+    })
+
+    output$SummaryCD <- renderPrint({
+      updateCheckboxGroupInput(session, "cambio_prop_cols", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+      updateCheckboxGroupInput(session, "cambio_prop_cols2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+      updateCheckboxGroupInput(session, "cambio_prop_cols3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+      updateCheckboxGroupInput(session, "elim_col1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+      updateCheckboxGroupInput(session, "elim_col2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+      updateCheckboxGroupInput(session, "elim_col3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+      updateSelectInput(session, "var_est", choices = as.list(c("NULL", names(data1))), selected = "NULL")
+      updateSelectInput(session, "var1", choices = as.list(names(data1)))
+      updateSelectInput(session, "vars1", choices = as.list(names(data1)))
+      updateSelectInput(session, "vars2", choices = as.list(names(data1)))
+      updateSelectInput(session, "ColorSum", choices = as.list(c("NULL",names(data1))))
+      updateSelectInput(session, "SizeSum", choices = as.list(c("NULL",names(data1))))
+      updateSelectInput(session, "var1_anim", choices = as.list(names(data1)))
+      updateSelectInput(session, "var2_anim", choices = as.list(names(data1)))
+      updateSelectInput(session, "group_anim", choices = as.list(names(which(sapply(data1,class)== "factor"))))
+      updateSelectInput(session, "BiplotHab", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+      updateSelectInput(session, "BiplotHab2", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+      updateSelectInput(session, "var_est_NN", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+      updateSelectInput(session, "var_est_Mod", choices = as.list(names(data1)))
+      updateCheckboxGroupInput(session, "var_exp1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+      updateCheckboxGroupInput(session, "var_exp2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+      updateCheckboxGroupInput(session, "var_exp3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+      updateCheckboxGroupInput(session, "trans_prop_mod1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+      updateCheckboxGroupInput(session, "trans_prop_mod2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+      updateCheckboxGroupInput(session, "trans_prop_mod3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+      
+      isolate(Summ_all_data(data1))
+    })
+  })
+
+  #Tercer Boton
+  observeEvent(input$varEstButton,{
+    output$SummaryCD <- renderPrint({
+      isolate({if(is.null(input$datos)){return()}
+        if(input$var_est %in% c("NULL", "") | class(data1[[input$var_est]]) != "numeric"){
+          Summ_all_data(data1)
+        }else{
+          Summ_all_data(data1, input$var_est)
+        }
+      })
+    })
+  })
+
+  #Cuarto boton
+  observeEvent(input$Clean2Button,{
+    output$ViewBDD = renderDataTable ({
+      isolate({
+        if(is.null(input$datos)){;return()}
+        elim_col <- function(data, vars_elim){
+          dataaux <- data
+          for (i in vars_elim) {
+            dataaux <- dataaux[-which(names(dataaux)==i)]
+          }
+          return(dataaux)
+        }
+        if(input$elim_col){data1 <<- elim_col(data1, c(input$elim_col1, input$elim_col2, input$elim_col3))}
+        if(input$elim_row){data1 <<- data1[-input$elim_row1,]}
+        updateCheckboxGroupInput(session, "cambio_prop_cols", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+        updateCheckboxGroupInput(session, "cambio_prop_cols2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+        updateCheckboxGroupInput(session, "cambio_prop_cols3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+        updateCheckboxGroupInput(session, "elim_col1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+        updateCheckboxGroupInput(session, "elim_col2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+        updateCheckboxGroupInput(session, "elim_col3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+        updateSelectInput(session, "var_est", choices = as.list(c("NULL", names(data1))), selected = "NULL")
+        updateSelectInput(session, "var1", choices = as.list(names(data1)))
+        updateSelectInput(session, "vars1", choices = as.list(names(data1)))
+        updateSelectInput(session, "vars2", choices = as.list(names(data1)))
+        updateSelectInput(session, "ColorSum", choices = as.list(c("NULL",names(data1))))
+        updateSelectInput(session, "SizeSum", choices = as.list(c("NULL",names(data1))))
+        updateSelectInput(session, "var1_anim", choices = as.list(names(data1)))
+        updateSelectInput(session, "var2_anim", choices = as.list(names(data1)))
+        updateSelectInput(session, "group_anim", choices = as.list(names(which(sapply(data1,class)== "factor"))))
+        updateSelectInput(session, "BiplotHab", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+        updateSelectInput(session, "BiplotHab2", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+        updateSelectInput(session, "var_est_NN", choices = as.list(names(dplyr::select_if(data1, is.factor))))
+        updateSelectInput(session, "var_est_Mod", choices = as.list(names(data1)))
+        updateCheckboxGroupInput(session, "var_exp1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+        updateCheckboxGroupInput(session, "var_exp2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+        updateCheckboxGroupInput(session, "var_exp3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+        updateCheckboxGroupInput(session, "trans_prop_mod1", choices = as.list(names(data1))[1:round(length(names(data1))/3)])
+        updateCheckboxGroupInput(session, "trans_prop_mod2", choices = as.list(names(data1))[(round(length(names(data1))/3)+1):(round(length(names(data1))/3)*2)])
+        updateCheckboxGroupInput(session, "trans_prop_mod3", choices = as.list(names(data1))[(round(length(names(data1))/3)*2+1):length(names(data1))])
+        
+        datatable(data1, options = list(scrollX = T, pageLength = 10))
+      })
+    })
+
+    output$SummaryCD <- renderPrint({
+      isolate({if(is.null(input$datos)){return()}
+        if(input$var_est %in% c("NULL", "") | class(data1[[input$var_est]]) != "numeric"){
+          Summ_all_data(data1)
+        }else{
+          Summ_all_data(data1, input$var_est)
+        }
+      })
+    })
+  })
+
+  ##### EDA SERVER #####--------------------------------------------------
+
+  #actualizar opciones del primer panel del EDA
+  choices1var = reactive({
+    switch(class(data1[, input$var1]),
+           "numeric" = as.list(c("Boxplot", "Histogram", "Density")),
+           "factor" = as.list(c("Barchart", "Piechart"))
+    )
+
+  })
+
+  observe({
+    if(input$var1 != "" && !is.null(input$var1)){
+      updateSelectInput(session, "Graf1", choices = choices1var())
+    }
+  })
+
+  observe({
+    if(input$var1 != "" && !is.null(input$var1)){
+      if(class(data1[,input$var1]) == "factor"){
+        updateSelectInput(session, "CatLev", choices = levels(data1[,input$var1]))
+      }
+      else{updateSelectInput(session, "CatLev", choices = character(0))}
+    }
+  })
+
+  choices2var = reactive({
+    switch(paste(class(data1[, input$vars1]), class(data1[, input$vars2])),
+           "factor numeric" = as.list(c("Boxplot", "Lines", "Columns")),
+           "factor factor" = as.list(c("Barchart")),
+           "numeric factor" = as.list(c("Boxplot", "Lines")),
+           "numeric numeric" = as.list(c("Scatterplot"))
+    )
+
+  })
+
+  observe({
+    if(input$vars1 != "" && !is.null(input$vars1) && input$vars2 != "" && !is.null(input$vars2)){
+      updateSelectInput(session, "Graf1y2", choices = choices2var())
+    }
+  })
+
+  #graficar para una variable
+  observeEvent(input$unavarButton,{
+    geom1var = reactive({
+      switch(input$Graf1,
+             "Boxplot" = geom_boxplot(aes_string(x = 1, y = input$var1)),
+             "Histogram" = geom_histogram(aes_string(x = input$var1), fill = "lightblue", color= "black",
+                                          bins = floor(sqrt(nrow(data1)))),
+             "Density" = geom_density(aes_string(x = input$var1)),
+             "Barchart" = list(geom_bar(aes_string(x = input$var1, fill = input$var1)),
+                               theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))),
+             "Piechart" = list(geom_bar(aes_string(x = input$var1, fill = input$var1)),
+                               coord_polar(theta = "x"),labs(fill = NULL))
+
+      )
+    })
+
+    output$Sumgrafic = renderPlot({
+      isolate(ggplot(data1) + geom1var())
+    })
+    output$SumText = renderPrint({ isolate( summary(data1[,input$var1]) ) })
+
+    output$EDAHelp = renderText({"Resumen de la variable:"})
+
+    ## Para las relaciones
+
+    des = reactive(
+      switch(class(data1[, input$var1]),
+             "factor" = catdes(data1, num.var = which(colnames(data1) == input$var1)),
+             "numeric" = condes(data1, num.var = which(colnames(data1) == input$var1))
+      )
+    )
+
+    output$RelCat = renderDataTable({
+      switch(class(data1[, input$var1]),
+             "factor" = isolate(DT::datatable(as.data.frame(des()$category[input$CatLev][input$CatLev]),
+                                              options = list(scrollX = T, pageLength = 5),
+                                              colnames = c("Cat/Row", "Row/Cat", "Global", "p-value", "v-test"))),
+             "numeric" = isolate(DT::datatable(as.data.frame(des()$category),
+                                               options = list(scrollX = T, pageLength = 5)))
+      )
+    })
+
+    output$RelNum = renderDataTable({
+      switch(class(data1[, input$var1]),
+             "factor" = isolate(DT::datatable(as.data.frame(des()$quanti[input$CatLev][input$CatLev]),
+                                              options = list(scrollX = T, pageLength = 5),
+                                              colnames = c("v-test", "Cat. Mean", "Global Mean", "Cat. sd", "Global sd", "p-value"))),
+             "numeric" = isolate(DT::datatable(as.data.frame(des()$quanti),
+                                               options = list(scrollX = T, pageLength = 5)))
+      )
+    })
+
+  })
+
+  #graficar para 2 variables
+
+  observeEvent(input$mvarsButton,{
+    boxParax = c("integer factor", "integer logical", "numeric factor", "numeric logical")
+    boxParay = c("factor integer", "logical integer", "factor numeric", "logical numeric")
+
+    geom2Box = reactive({
+      switch(paste(class(data1[, input$vars1]), class(data1[, input$vars2])),
+             "numeric factor" = geom_boxplot(aes_string(x = input$vars2, y = input$vars1)),
+             "factor numeric" = geom_boxplot(aes_string(x = input$vars1, y = input$vars2))
+      )
+    })
+
+    geom2Line = reactive({
+      switch(paste(class(data1[, input$vars1]), class(data1[, input$vars2])),
+             "numeric factor" = geom_density(aes_string(x = input$vars1, color = input$vars2)),
+             "factor numeric" = geom_density(aes_string(x = input$vars2, color = input$vars1))
+      )
+    })
+
+    geom2Final = reactive({
+      switch(input$Graf1y2,
+             "Boxplot" = geom2Box(),
+             "Lines" = geom2Line(),
+             "Scatterplot" = geom_point(aes_string(x = input$vars1, y = input$vars2,
+                                                   color = input$ColorSum, size = input$SizeSum)),
+             "Barchart" = list(geom_bar(aes_string(x = input$vars1, fill = input$vars2)),
+                               theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))),
+             "Columns" = geom_col(aes_string(x=input$vars1, y=input$vars2, fill = input$vars1))
+      )
+    })
+
+    output$Sumgrafic = renderPlot({
+      isolate( ggplot(data1) + geom2Final() )
+    })
+    output$SumText = renderPrint({
+      isolate(if(paste(class(data1[, input$vars1]), class(data1[, input$vars2])) == "numeric numeric"){
+        cor(data1[ ,input$vars1], data1[ ,input$vars2]) }
+        else{print("Para analisis entre factores, ve a CA")})
+    })
+
+    output$EDAHelp = renderText({"La correlacion entre las variables es:"})
+
+  })
+
+  observeEvent(input$TotalCorr, {
+    output$Sumgrafic = renderPlot({
+      isolate(corrplot(cor(dplyr::select_if(data1, is.numeric)), method = "square",
+                       addCoefasPercent = T, addCoef.col = "black", tl.col = "blue3",
+                       tl.cex = .8,number.cex = .8))
+    })
+
+    output$SumText = renderPrint({
+      isolate(cor(dplyr::select_if(data1, is.numeric)))
+    })
+  })
+
+
+
+
+
+
+  ##### Anim SERVER #####--------------------------------------------------
+  choices1var_anim = reactive({
+    switch(class(data1[, input$var1_anim]),
+           "numeric" = as.list(c("Columns")),
+           "factor" = as.list(c("NULL"))
+    )
+
+  })
+
+  observe({
+    if(input$var1_anim != "" && !is.null(input$var1) && !input$var2_check_anim){
+      updateSelectInput(session, "type_graf_anim", choices = choices1var_anim())
+    }
+  })
+
+  observe({
+    if(input$var1_anim != "" && !is.null(input$var1_anim) && input$var2_anim != "" && !is.null(input$var2_anim) && input$var2_check_anim){
+      if(input$type_graf_anim =="Columns" && input$var2_check_anim){
+        updateSelectInput(session, "group_anim", choices = as.list(input$var1_anim))
+      }else{
+        observe({updateSelectInput(session, "group_anim", choices = as.list(names(which(sapply(data1,class)== "factor"))))})
+      }
+    }
+  })
+
+  choices2var_anim = reactive({
+    switch(paste(class(data1[, input$var1_anim]), class(data1[, input$var2_anim])),
+           "factor numeric" = as.list(c("Columns")),
+           "factor factor" = as.list(c("NULL")),
+           "numeric factor" = as.list(c("NULL")),
+           "numeric numeric" = as.list(c("Scatterplot"))
+    )
+
+  })
+
+  observe({
+    if(input$var1_anim != "" && !is.null(input$var1_anim) && input$var2_anim != "" && !is.null(input$var2_anim) && input$var2_check_anim){
+      updateSelectInput(session, "type_graf_anim", choices = choices2var_anim())
+    }
+  })
+
+
+  observeEvent(input$AnimButton,{
+    output$Anim_graph <- renderImage({
+      isolate({
+        outfile <- tempfile(fileext='.gif')
+        p = animar(data = data1, varA1 = input$var1_anim, two_var = input$var2_check_anim,
+                   varA2 = input$var2_anim, group = input$group_anim, type_graf = input$type_graf_anim)
+
+        anim_save("outfile.gif", animate(p, end_pause = 60))
+
+        list(src = "outfile.gif",
+             contentType = 'image/gif',
+             width = 600,
+             height = 600
+             # alt = "This is alternate text"
+        )})
+    }, deleteFile = TRUE)
+  })
+
+  ##### PCA SERVER #####--------------------------------------------------
+  pcadatos = reactiveVal()
+  observeEvent(input$PCAButton, {
+    #Para las tablas
+    pcadatos(PCA(dplyr::select_if(data1, is.numeric), graph = F))
+    PCAvarTable = t(pcadatos()$eig)
+    row.names(PCAvarTable) = c("eig-value", "% var", "Cum % var")
+    output$cumvarPCA = renderDataTable({DT::datatable(PCAvarTable, options = list(scrollX = T))})
+    output$coefsPCA = renderDataTable({DT::datatable(pcadatos()$var$coord, options = list(scrollX = T))})
+    tablalimitadaPCA = pcadatos()$ind$coord[1:100, ]
+    output$scoresPCA = DT::renderDataTable({
+      DT::datatable(tablalimitadaPCA, options = list(scrollX = T, pageLength = 5))})
+    output$downloadPCA = downloadHandler(
+      filename = "PCAdeShiny.csv",
+      content = function(file){write.csv(pcadatos$ind$coord, file, row.names = F)}
+    )
+
+    #Para los tips
+    necesarias = paste("Hecho el PCA, recuperas al menos el 80% de varianza si conservas ", which(pcadatos()$eig[,3] > 80)[1], "componentes.")
+    obtenidas = paste("Con dos dimensiones puedes explicar un ", round(pcadatos()$eig[,3][2], 2), "% de varianza, y con 3 dimensiones puedes explicar un ", round(pcadatos()$eig[,3][3], 2),".")
+    opinion = switch(as.character(pcadatos()$eig[,3][3]>80),
+                     "TRUE" = "Va a ser sencillo visualizar tus datos con la mayor parte de su varianza.",
+                     "FALSE" = "Puede que tengas problemas para tratar de visualizar tus datos con una buena parte de su varianza")
+    output$ResumenPCA = renderText({paste(necesarias, obtenidas, opinion, sep = " ")})
+
+    dim1o = order(abs(pcadatos()$var$coord[, 1]), decreasing = T)[1:3]
+    dim2o = order(abs(pcadatos()$var$coord[, 2]), decreasing = T)[1:3]
+    dim3o = order(abs(pcadatos()$var$coord[, 3]), decreasing = T)[1:3]
+    dim1 = row.names(pcadatos()$var$coord[dim1o, ])
+    dim2 = row.names(pcadatos()$var$coord[dim2o, ])
+    dim3 = row.names(pcadatos()$var$coord[dim3o, ])
+    por1 = round(pcadatos()$var$coord[dim1o, 1], 3)
+    por2 = round(pcadatos()$var$coord[dim2o, 2], 3)
+    por3 = round(pcadatos()$var$coord[dim3o, 3], 3)
+    res1 = paste("Tu primera componente se explica principalmente por la variable", dim1[1], "con coeficiente", por1[1],
+                 ",la variable", dim1[2], "con coeficiente", por1[2], " y", dim1[3], "con coeficiente", por1[3], sep = " ")
+    res2 = paste("La segunda componente se explica por la variable", dim2[1], "con coeficiente", por2[1],
+                 ",la variable", dim2[2], "con coeficiente", por2[2], " y", dim2[3], "con coeficiente", por2[3], sep = " ")
+    res3 = paste("Finalmente, la tercera se compone principalmente de ", dim3[1], " con coeficiente ", por3[1], ", ",
+                 dim3[2], " con coeficiente ", por3[2], "  y ", dim3[3], " con coeficiente ", por3[3],  sep = "")
+    output$Resumen2PCA = renderText({paste(res1, res2, res3, "Es tu trabajo interpretar esto.", sep = ". ")})
+
+  })
+
+  labelsPCAP = reactive({
+    if(is.null(input$BiplotLabs)){return("none")}
+    else {return(input$BiplotLabs)}
+  })
+
+  grafiPCA = reactive({switch(input$BiplotGr,
+                              "ind" = fviz_pca_ind(pcadatos(), label = labelsPCAP(),
+                                                   col.ind = data1[, input$BiplotHab]),
+                              "var" = fviz_pca_var(pcadatos(), label = labelsPCAP() ),
+
+                              "biplot" = fviz_pca_biplot(pcadatos(), label = labelsPCAP(),
+                                                         col.ind = data1[, input$BiplotHab])
+
+  )  })
+
+  observeEvent(input$GrafPCAButton,{
+    output$screePCA = renderPlot({ isolate(fviz_screeplot(pcadatos(), addlabels = T,
+                                                          ylab = "% Var")) })
+
+    output$PlotPCA = renderPlot({
+      isolate(grafiPCA())
+    })
+  })
+
+  ##### CA SERVER #####--------------------------------------------------
+  cadatos = reactiveVal()
+  observeEvent(input$CAButton, {
+    #Para las tablas
+    cadatos(MCA(dplyr::select_if(data1, is.factor), graph = F))
+    CAvarTable = t(cadatos()$eig)
+    row.names(CAvarTable) = c("eig-value", "% var", "Cum % var")
+    output$cumvarCA = renderDataTable({DT::datatable(CAvarTable, options = list(scrollX = T))})
+    output$coefsCA = renderDataTable({DT::datatable(cadatos()$var$coord, options = list(scrollX = T, pageLength = 5))})
+    tablalimitadaCA = cadatos()$ind$coord[1:100, ]
+    output$scoresCA = DT::renderDataTable({
+      DT::datatable(tablalimitadaCA, options = list(scrollX = T, pageLength = 5))})
+    output$downloadCA = downloadHandler(
+      filename = "CAdeShiny.csv",
+      content = function(file){write.csv(cadatos$ind$coord, file, row.names = F)}
+    )
+
+    #Para los tips
+    necesarias = paste("Hecho el CA, recuperas al menos el 80% de varianza si conservas ", which(cadatos()$eig[,3] > 80)[1], "componentes.")
+    obtenidas = paste("Con dos dimensiones puedes explicar un ", round(cadatos()$eig[,3][2], 2), "% de varianza, y con 3 dimensiones puedes explicar un ", round(cadatos()$eig[,3][3], 2),".")
+    opinion = switch(as.character(cadatos()$eig[,3][3]>80),
+                     "TRUE" = "Va a ser sencillo visualizar tus datos con la mayor parte de su varianza.",
+                     "FALSE" = "Puede que tengas problemas para tratar de visualizar tus datos con una buena parte de su varianza.")
+    output$ResumenCA = renderText({paste(necesarias, obtenidas, opinion, sep = " ")})
+
+    dim1o = order(abs(cadatos()$var$coord[, 1]), decreasing = T)[1:3]
+    dim2o = order(abs(cadatos()$var$coord[, 2]), decreasing = T)[1:3]
+    dim3o = order(abs(cadatos()$var$coord[, 3]), decreasing = T)[1:3]
+    dim1 = row.names(cadatos()$var$coord[dim1o, ])
+    dim2 = row.names(cadatos()$var$coord[dim2o, ])
+    dim3 = row.names(cadatos()$var$coord[dim3o, ])
+    por1 = round(cadatos()$var$coord[dim1o, 1], 3)
+    por2 = round(cadatos()$var$coord[dim2o, 2], 3)
+    por3 = round(cadatos()$var$coord[dim3o, 3], 3)
+    res1 = paste("Tu primera componente se explica principalmente por la variable", dim1[1], "con coeficiente", por1[1],
+                 ",la variable", dim1[2], "con coeficiente", por1[2], " y", dim1[3], "con coeficiente", por1[3], sep = " ")
+    res2 = paste("La segunda componente se explica por la variable", dim2[1], "con coeficiente", por2[1],
+                 ",la variable", dim2[2], "con coeficiente", por2[2], " y", dim2[3], "con coeficiente", por2[3], sep = " ")
+    res3 = paste("Finalmente, la tercera se compone principalmente de ", dim3[1], " con coeficiente ", por3[1], ", ",
+                 dim3[2], " con coeficiente ", por3[2], "  y ", dim3[3], " con coeficiente ", por3[3],  sep = "")
+    output$Resumen2CA = renderText({paste(res1, res2, res3, "Es tu trabajo interpretar esto.", sep = ". ")})
+
+  })
+
+  labelsCAP = reactive({
+    if(is.null(input$BiplotLabs2)){return("none")}
+    else {return(input$BiplotLabs2)}
+  })
+
+  grafiCA = reactive({switch(input$BiplotGr2,
+                             "var" = fviz_mca_var(cadatos(), label = labelsCAP()),
+                             "ind" = fviz_mca_ind(cadatos(), label = labelsCAP(), col.ind = data1[, input$BiplotHab2]),
+
+                             "biplot" = fviz_mca_biplot(cadatos(), label = labelsCAP(),
+                                                        col.ind = data1[, input$BiplotHab2])
+
+  )  })
+
+  observeEvent(input$GrafCAButton,{
+    output$screeCA = renderPlot({ isolate(fviz_screeplot(cadatos(), addlabels = T,
+                                                         ylab = "% Var")) })
+
+    output$PlotCA = renderPlot({
+      isolate(grafiCA())
+    })
+  })
+
+  ##### ML SERVER #####-------------------------------
+  modelo_ML <- reactiveVal()
+  observeEvent(input$ModButton, {
+    modelo_ML <<- crear_modelo(data = data1, var_est = input$var_est_Mod, 
+                                   var_exp = c(input$var_exp1,input$var_exp2,input$var_exp3), intercep = input$intr_mod, 
+                                   method = input$method_mod, percTest = input$percTest_mod, ln_vars = input$ln_vars_mod, 
+                                   ln_vars_tr = c(input$trans_prop_mod1, input$trans_prop_mod2, input$trans_prop_mod3),
+                                   trC_method = input$trC_method_mod, trC_num = input$trC_num_mod, trC_rep = input$trC_rep_mod)
+  
+    output$NN_Summ <- renderPrint({
+      isolate({
+        print(summary(modelo_ML))
+        print(modelo_ML)
+      })
+    })
+  })
+  
+  
+  ##### NN SERVER#####---------------
+  observeEvent(input$NNButton, {
+    modelo <- NULL
+
+    output$NN_Plot = renderPlot({
+      isolate({
+    if (!input$NN_1) {
+      modelo <<- redes(data = data1, var_est = input$var_est_NN, vPerc = input$vPerc_NN,
+                      unitsE = c(input$unitsE1_NN),
+                      activationE = c(input$activationE1_NN,input$activationE4_NN),
+                      lDrop = NULL, epochsE = input$epochsE_NN, batch_sizeE = input$batch_sizeE_NN,
+                      validation_splitE = input$validation_splitE_NN)
+    }
+
+    if (input$NN_1 & !input$NN_2) {
+      modelo <<- redes(data = data1, var_est = input$var_est_NN, vPerc = input$vPerc_NN,
+                      unitsE = c(input$unitsE1_NN,input$unitsE2_NN),
+                      activationE = c(input$activationE1_NN,input$activationE2_NN,input$activationE4_NN),
+                      lDrop = c(input$lDrop1_NN, input$lDrop3_NN), epochsE = input$epochsE_NN,
+                      batch_sizeE = input$batch_sizeE_NN,
+                      validation_splitE = input$validation_splitE_NN)
+    }
+
+    if (input$NN_1 & input$NN_2) {
+      modelo <<- redes(data = data1, var_est = input$var_est_NN, vPerc = input$vPerc_NN,
+                      unitsE = c(input$unitsE1_NN, input$unitsE2_NN, input$unitsE3_NN),
+                      activationE = c(input$activationE1_NN,input$activationE2_NN,input$activationE3_NN,input$activationE4_NN),
+                      lDrop = c(input$lDrop1_NN, input$lDrop2_NN, input$lDrop3_NN),
+                      epochsE = input$epochsE_NN, batch_sizeE = input$batch_sizeE_NN,
+                      validation_splitE = input$validation_splitE_NN)
+    }
+    plot(modelo$plt)
+      })
+    })
+
+    output$NN_Data = renderDataTable ({
+      isolate(datatable(modelo$data, options = list(scrollX = T, pageLength = 5)))
+    })
+
+    output$NN_Summ <- renderPrint({
+      isolate({
+      print(modelo$predT)
+      print(modelo$ptest)
+      })
+    })
+  })
+}
+
+
+# Run the application
+shinyApp(ui = ui, server = server)

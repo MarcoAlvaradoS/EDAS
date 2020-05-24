@@ -1,0 +1,51 @@
+crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest, 
+                         ln_vars=F, ln_vars_tr = NULL, trC_method = "none",
+                         trC_num, trC_rep){
+  data <- data[c(var_est, var_exp)]
+  
+  if(ln_vars){data <- data %>% mutate_at(ln_vars_tr, log)}
+  if(trC_num == 0){trC_num<- NA}
+  if(trC_num == 0){trC_num<- NA}
+  
+  aux <- as.numeric(which(names(data)==var_est))
+  data <- data %>% mutate(y = data[[var_est]])
+  data <- data[-aux]
+  train_test <- initial_split(data = data, (percTest/100))
+  train <- training(train_test)
+  test <- testing(train_test)
+  
+  if(intercep){
+    model <- train(
+      y ~ ., 
+      data,
+      method = method,
+      trControl = trainControl(
+        method = trC_method, 
+        number = trC_num,
+        repeats = trC_rep, 
+        verboseIter = F
+      )
+    )
+  }else{
+    model <- train(
+      y ~ -1 + ., 
+      data,
+      method = method,
+      trControl = trainControl(
+        method = trC_method, 
+        number = trC_num,
+        repeats = trC_rep, 
+        verboseIter = F
+      )
+    )
+  }
+  
+  return(model)
+}
+
+mod <- crear_modelo(data = iris, var_est = "Sepal.Length", 
+             var_exp = c("Sepal.Width", "Petal.Width","Petal.Length"), intercep = F, 
+             method = "lm", percTest = 80, ln_vars = T, ln_vars_tr = c("Petal.Width","Petal.Length"),
+             trC_method = "repeatedcv", trC_num = 5, trC_rep = 5)
+
+summary(mod)

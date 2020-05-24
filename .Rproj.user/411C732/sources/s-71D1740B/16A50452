@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1589425128995.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3120617075",
+    "id" : "16A50452",
+    "lastKnownWriteTime" : 1590304894,
+    "last_content_update" : 1590304894824,
+    "path" : "C:/Users/Marco/OneDrive/Escritorio/Paquete/EDAS/R/Pruebas.R",
+    "project_path" : "R/Pruebas.R",
+    "properties" : {
+        "cursorPosition" : "296,15",
+        "scrollLine" : "289"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
