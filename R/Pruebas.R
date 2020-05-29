@@ -11,7 +11,7 @@ Summ_data <- function(dataset){
         "valores perdidos.\n"),
       paste("De estas columnas,", int_dat$discrete_columns,
         "son discretas,", int_dat$continuous_columns, "son continuas y", int_dat$all_missing_columns,
-        "est?n completamente vacias.")))
+        "estan completamente vacias.")))
 }
 
 #'Eliminate empty columns of dataset

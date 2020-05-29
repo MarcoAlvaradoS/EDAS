@@ -1,0 +1,23 @@
+Package: EDAS
+Type: Package
+Title: EDAS
+Version: 0.2.0
+Author: Marco Alvarado <MarcoAlvarado@ciencias.unam.mx>
+Maintainer: Marco Alvarado <MarcoAlvarado@ciencias.unam.mx>
+Description: EDAS Package
+License: CC0
+Encoding: UTF-8
+LazyData: true
+Imports:
+    DataExplorer,
+    caret,
+    dplyr,
+    gganimate,
+    ggplot2,
+    keras,
+    missForest,
+    olsrr,
+    rsample,
+    tidyr,
+    tidyverse
+RoxygenNote: 7.1.0
