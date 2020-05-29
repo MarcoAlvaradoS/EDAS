@@ -339,7 +339,7 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
     )
   }
 
-  return(model)
+  return(list(modelo = model, test=test))
 }
 
 
