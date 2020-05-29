@@ -352,13 +352,23 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
 #'@export
 corSig <- function(base, umbrales){
   cormat <- cor(base)
+  aux <- 0
+  cat("Las variables:\n")
   for (umbral in umbrales) {
     for (i in 1:(nrow(cormat)-1)) {
       for (j in (i+1):ncol(cormat)) {
         if (abs(cormat[i,j]) > umbral & abs(cormat[i,j]) < umbral+.1) {
-          cat("Las variables:", names(base)[i], "y", names(base)[j], "tienen una correlacion de", round(cormat[i,j],4), "\n")
+          cat(names(base)[i], "y", names(base)[j], "tienen una correlacion de", round(cormat[i,j],4), "\n")
+          aux <- aux + 1
         }
       }
     }
   }
+  
+  if(aux/ncol(base) > 1/3){
+    cat("Es muy probable que se puedan reducir dimensiones.")
+  }else{
+    cat("Va a ser complicado reducir dimensiones.")
+  }
+    
 }
