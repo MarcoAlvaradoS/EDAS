@@ -347,6 +347,7 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
 #'
 #'@param base A database to use
 #'@param umbrales A numeric value with Significant umbrals
+#'@importFrom stats cor
 #'@return Significant correlations
 #'@export
 corSig <- function(base, umbrales){
