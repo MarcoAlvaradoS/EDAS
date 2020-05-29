@@ -343,4 +343,21 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
 }
 
 
-
+#'Significant correlations
+#'
+#'@param base A database to use
+#'@param umbrales A numeric value with Significant umbrals
+#'@return Significant correlations
+#'@export
+corSig <- function(base, umbrales){
+  cormat <- cor(base)
+  for (umbral in umbrales) {
+    for (i in 1:(nrow(cormat)-1)) {
+      for (j in (i+1):ncol(cormat)) {
+        if (abs(cormat[i,j]) > umbral & abs(cormat[i,j]) < umbral+.1) {
+          cat("Las variables:", names(base)[i], "y", names(base)[j], "tienen una correlacion de", round(cormat[i,j],4), "\n")
+        }
+      }
+    }
+  }
+}
