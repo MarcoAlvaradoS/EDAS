@@ -123,7 +123,7 @@ Summ_all_data <- function(data, var_est=NULL){
                toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
     b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
                toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
-    c <- "No se encontraron observaciones con datos at?picos."
+    c <- "No se encontraron observaciones con datos atipicos."
     d <- "No se encontraron observaciones con una alta influencia"
     cat(ss1, "\n")
     cat(if_else(length(out)>0, a, c), "\n")
@@ -367,8 +367,8 @@ corSig <- function(base, umbrales){
   }
   
   if(aux/ncol(base) > 1/3){
-    cat(paste("Dado que", aux, "de las columnas tiene una correlación significativa, es muy probable que se puedan reducir dimensiones."))
+    cat(paste("Dado que", aux, "de las columnas tiene(n) una correlacion significativa, es muy probable que se pueda reducir dimensiones."))
   }else{
-    cat(paste("Dado que solo", aux, "de las columnas tiene una correlación significativa, va a ser complicado reducir dimensiones."))
+    cat(paste("Dado que solo", aux, "de las columnas tiene(n) una correlacion significativa, va a ser complicado reducir dimensiones."))
   }   
 }
