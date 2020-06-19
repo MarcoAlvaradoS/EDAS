@@ -73,12 +73,12 @@ out_inf_points <- function(data, var_est){
   data_aux <- data[which(sapply(data, class)=="numeric")]
   data_aux2 <- data_aux[-which(names(data_aux)==var_est)]
   model <- lm(data_aux[[var_est]] ~ ., data = data_aux2)
-  
+
   ati <- ols_plot_resid_stud_fit(model, print_plot = FALSE)
   out <- ati$plot$data[as.vector(ati$plot$data["color"] == "outlier"),]$obs
   inf <- ols_plot_cooksd_bar(model, print_plot = FALSE)
   ifp <- inf$plot$data[as.vector(inf$plot$data["color"] == "outlier"),]$obs
-  
+
   a <- paste("Cuidado, se identificaron las siguientes observaciones con datos atipicos **",
              toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
   b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
@@ -87,7 +87,7 @@ out_inf_points <- function(data, var_est){
   d <- "No se encontraron observaciones con una alta influencia"
   cat(if_else(length(out)>0, a, c), "\n")
   cat(if_else(length(ifp)>0, b, d),"\n")
-  
+
 }
 
 #'Summary of all data
@@ -365,30 +365,10 @@ corSig <- function(base, umbrales){
       }
     }
   }
-  
+
   if(aux/ncol(base) > 1/3){
     cat(paste("Dado que", aux, "de las columnas tiene(n) una correlacion significativa, es muy probable que se pueda reducir dimensiones."))
   }else{
     cat(paste("Dado que solo", aux, "de las columnas tiene(n) una correlacion significativa, va a ser complicado reducir dimensiones."))
-  }   
-}
-
-#'Significant correlations
-#'
-#'@param base A database to use
-#'@param umbrales A numeric value with Significant umbrals
-#'@importFrom stats cor
-#'@return Significant correlations
-#'@export
-corSig2 <- function(base, umbrales){
-  cormat <- cor(base)
-  for (umbral in umbrales) {
-    for (i in 1:(nrow(cormat)-1)) {
-      for (j in (i+1):ncol(cormat)) {
-        if (abs(cormat[i,j]) > umbral & abs(cormat[i,j]) < umbral+.1) {
-          cat("Las variables:", names(base)[i], "y", names(base)[j], "tienen una correlacion de", round(cormat[i,j],4), "\n")
-        }
-      }
-    }
   }
 }
