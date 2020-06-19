@@ -6,12 +6,12 @@
 #'@export
 Summ_data <- function(dataset){
   int_dat <- introduce(dataset)
-  return(cat(paste("La base de datos consta de", int_dat$columns, "columnas de", int_dat$rows,
+  cat(paste("La base de datos consta de", int_dat$columns, "columnas de", int_dat$rows,
         "observaciones cada una y con un total de" , int_dat$total_missing_values,
-        "valores perdidos.\n"),
-      paste("De estas columnas,", int_dat$discrete_columns,
+        "valores perdidos.\n"))
+   cat(paste("De estas columnas,", int_dat$discrete_columns,
         "son discretas,", int_dat$continuous_columns, "son continuas y", int_dat$all_missing_columns,
-        "estan completamente vacias.")))
+        "estan completamente vacias."))
 }
 
 #'Eliminate empty columns of dataset
@@ -73,21 +73,21 @@ out_inf_points <- function(data, var_est){
   data_aux <- data[which(sapply(data, class)=="numeric")]
   data_aux2 <- data_aux[-which(names(data_aux)==var_est)]
   model <- lm(data_aux[[var_est]] ~ ., data = data_aux2)
-
+  
   ati <- ols_plot_resid_stud_fit(model, print_plot = FALSE)
   out <- ati$plot$data[as.vector(ati$plot$data["color"] == "outlier"),]$obs
   inf <- ols_plot_cooksd_bar(model, print_plot = FALSE)
   ifp <- inf$plot$data[as.vector(inf$plot$data["color"] == "outlier"),]$obs
-
+  
   a <- paste("Cuidado, se identificaron las siguientes observaciones con datos atipicos **",
              toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
   b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
              toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
   c <- "No se encontraron observaciones con datos atipicos."
   d <- "No se encontraron observaciones con una alta influencia"
-  cat(if_else(length(out)>0, a, c),"\n\n",
-      if_else(length(ifp)>0, b, d))
-
+  cat(if_else(length(out)>0, a, c), "\n")
+  cat(if_else(length(ifp)>0, b, d),"\n")
+  
 }
 
 #'Summary of all data
@@ -123,10 +123,11 @@ Summ_all_data <- function(data, var_est=NULL){
                toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
     b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
                toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
-    c <- "No se encontraron observaciones con datos at?picos."
+    c <- "No se encontraron observaciones con datos atipicos."
     d <- "No se encontraron observaciones con una alta influencia"
-    cat(ss1, "\n\n",if_else(length(out)>0, a, c),"\n\n",
-        if_else(length(ifp)>0, b, d))
+    cat(ss1, "\n")
+    cat(if_else(length(out)>0, a, c), "\n")
+    cat(if_else(length(ifp)>0, b, d), "\n")
   }
 }
 
@@ -339,7 +340,7 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
     )
   }
 
-  return(model)
+  return(list(modelo = model, test=test))
 }
 
 
@@ -352,15 +353,24 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
 #'@export
 corSig <- function(base, umbrales){
   cormat <- cor(base)
+  aux <- 0
+  cat("Las variables:\n")
   for (umbral in umbrales) {
     for (i in 1:(nrow(cormat)-1)) {
       for (j in (i+1):ncol(cormat)) {
         if (abs(cormat[i,j]) > umbral & abs(cormat[i,j]) < umbral+.1) {
-          cat("Las variables:", names(base)[i], "y", names(base)[j], "tienen una correlacion de", round(cormat[i,j],4), "\n")
+          cat(names(base)[i], "y", names(base)[j], "tienen una correlacion de", round(cormat[i,j],4), "\n")
+          aux <- aux + 1
         }
       }
     }
   }
+  
+  if(aux/ncol(base) > 1/3){
+    cat(paste("Dado que", aux, "de las columnas tiene(n) una correlacion significativa, es muy probable que se pueda reducir dimensiones."))
+  }else{
+    cat(paste("Dado que solo", aux, "de las columnas tiene(n) una correlacion significativa, va a ser complicado reducir dimensiones."))
+  }   
 }
 
 #'Significant correlations
