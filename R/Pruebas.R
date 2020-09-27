@@ -11,7 +11,7 @@ Summ_data <- function(dataset){
         "valores perdidos.\n"))
    cat(paste("De estas columnas,", int_dat$discrete_columns,
         "son discretas,", int_dat$continuous_columns, "son continuas y", int_dat$all_missing_columns,
-        "estan completamente vacias."))
+        "estan completamente vacias.\n"))
 }
 
 #'Eliminate empty columns of dataset
@@ -80,11 +80,11 @@ out_inf_points <- function(data, var_est){
   ifp <- inf$plot$data[as.vector(inf$plot$data["color"] == "outlier"),]$obs
 
   a <- paste("Cuidado, se identificaron las siguientes observaciones con datos atipicos **",
-             toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
+             toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.\n")
   b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
-             toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
-  c <- "No se encontraron observaciones con datos atipicos."
-  d <- "No se encontraron observaciones con una alta influencia"
+             toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.\n")
+  c <- "No se encontraron observaciones con datos atipicos.\n"
+  d <- "No se encontraron observaciones con una alta influencia.\n"
   cat(if_else(length(out)>0, a, c), "\n")
   cat(if_else(length(ifp)>0, b, d),"\n")
 
@@ -105,7 +105,7 @@ Summ_all_data <- function(data, var_est=NULL){
                "valores perdidos.\n",
                "De estas columnas,", int_dat$discrete_columns,
                "son discretas,", int_dat$continuous_columns, "son continuas y", int_dat$all_missing_columns,
-               "estan completamente vacias.")
+               "estan completamente vacias.\n")
 
   if(is.null(var_est)){
     return(cat(ss1))
@@ -120,11 +120,11 @@ Summ_all_data <- function(data, var_est=NULL){
     ifp <- inf$plot$data[as.vector(inf$plot$data["color"] == "outlier"),]$obs
 
     a <- paste("Cuidado, se identificaron las siguientes observaciones con datos atipicos **",
-               toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
+               toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.\n")
     b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
-               toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
-    c <- "No se encontraron observaciones con datos atipicos."
-    d <- "No se encontraron observaciones con una alta influencia"
+               toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.\n")
+    c <- "No se encontraron observaciones con datos atipicos.\n"
+    d <- "No se encontraron observaciones con una alta influencia.\n"
     cat(ss1, "\n")
     cat(if_else(length(out)>0, a, c), "\n")
     cat(if_else(length(ifp)>0, b, d), "\n")
@@ -200,6 +200,7 @@ animar <- function(data, varA1, two_var, varA2, group, type_graf){
 #'@param validation_splitE ---
 #'@import tidyverse
 #'@import tidyr
+#'@import caret
 #'@import keras
 #'@return A plot object
 #'@export
@@ -239,9 +240,15 @@ redes <- function(data, var_est, vPerc, unitsE, activationE, lDrop= NULL, epochs
     data <- as.matrix(data)
     data[,-aux] <- normalize(data[,-aux])
     dimnames(data) <- NULL
-    ind <- sample(2, nrow(data), replace = T, prob = c((vPerc/100), 1-(vPerc/100)))
-    training <- data[ind==1, -aux]
-    test <- data[ind==2, -aux]
+
+    # ind <- sample(2, nrow(data), replace = T, prob = c((vPerc/100), 1-(vPerc/100)))
+    # training <- data[ind==1, -aux]
+    # test <- data[ind==2, -aux]
+
+    ind <- createDataPartition(data[[var_est]], p = vPerc/100, list = F)
+    training <- datosMod[ind, -aux]
+    test <- datosMod[-ind, -aux]
+
     trainingtarget <- data[ind==1, aux]
     testtarget <- data[ind==2, aux]
     trainLabels <- to_categorical(trainingtarget)
@@ -367,8 +374,8 @@ corSig <- function(base, umbrales){
   }
 
   if(aux/ncol(base) > 1/3){
-    cat(paste("Dado que", aux, "de las columnas tiene(n) una correlacion significativa, es muy probable que se pueda reducir dimensiones."))
+    cat(paste("Dado que", aux, "de las columnas tiene(n) una correlacion significativa, es muy probable que se pueda reducir dimensiones.\n"))
   }else{
-    cat(paste("Dado que solo", aux, "de las columnas tiene(n) una correlacion significativa, va a ser complicado reducir dimensiones."))
+    cat(paste("Dado que solo", aux, "de las columnas tiene(n) una correlacion significativa, va a ser complicado reducir dimensiones.\n"))
   }
 }
