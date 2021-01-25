@@ -356,7 +356,7 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
 
   if(ln_vars){data <- data %>% mutate_at(ln_vars_tr, log)}
   if(trC_num == 0){trC_num<- NA}
-  if(trC_num == 0){trC_num<- NA}
+  if(trC_rep == 0){trC_rep<- NA}
 
   aux <- as.numeric(which(names(data)==var_est))
   data <- data %>% mutate(y = data[[var_est]])
