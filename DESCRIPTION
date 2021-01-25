@@ -9,7 +9,6 @@ License: CC0
 Encoding: UTF-8
 LazyData: true
 Imports:
-    DataExplorer,
     caret,
     dplyr,
     gganimate,
@@ -20,4 +19,4 @@ Imports:
     rsample,
     tidyr,
     tidyverse
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
