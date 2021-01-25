@@ -2,16 +2,17 @@
 #'
 #'@param dataset A database to summary
 #'@return A summary of data base
-#'@import DataExplorer
 #'@export
 Summ_data <- function(dataset){
-  int_dat <- introduce(dataset)
-  cat(paste("La base de datos consta de", int_dat$columns, "columnas de", int_dat$rows,
-        "observaciones cada una y con un total de" , int_dat$total_missing_values,
-        "valores perdidos.\n"))
-   cat(paste("De estas columnas,", int_dat$discrete_columns,
-        "son discretas,", int_dat$continuous_columns, "son continuas y", int_dat$all_missing_columns,
-        "estan completamente vacias.\n"))
+  tipoNum <- sum(sapply(dataset, class) %in% c("double", "numeric"))
+  tipoDis <- sum(sapply(dataset, class) %in% c("double", "numeric"))
+  tipoNAs <- sum(sapply(as.data.frame(sapply(dataset, is.na)),sum))
+  return(cat(paste("La base de datos consta de", ncol(dataset), "columnas de", nrow(dataset),
+                   "observaciones cada una y con un total de" , sum(is.na(dataset)),
+                   "valores perdidos.\n"),
+             paste("De estas columnas,", tipoDis,
+                   "son discretas,", tipoNum, "son continuas y", tipoNAs,
+                   "estan completamente vacias.")))
 }
 
 #'Eliminate empty columns of dataset
@@ -21,11 +22,11 @@ Summ_data <- function(dataset){
 #'@return A dataset without empty columns
 #'@export
 all_miss_col <- function(dataset, perc){
-  int_dat <- introduce(dataset)
-  if(int_dat$all_missing_columns == 0){
+  int_dat <- sum(sapply(as.data.frame(sapply(iris, is.na)),sum))
+  if(int_dat == 0){
     warning("No se tienen columnas completamente vacias.")
     return(dataset)
-    }
+  }
   col_na <- which(colMeans(is.na(dataset))>(perc/100))
   return(dataset[,-col_na])
 }
@@ -80,13 +81,13 @@ out_inf_points <- function(data, var_est){
   ifp <- inf$plot$data[as.vector(inf$plot$data["color"] == "outlier"),]$obs
 
   a <- paste("Cuidado, se identificaron las siguientes observaciones con datos atipicos **",
-             toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.\n")
+             toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
   b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
-             toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.\n")
-  c <- "No se encontraron observaciones con datos atipicos.\n"
-  d <- "No se encontraron observaciones con una alta influencia.\n"
-  cat(if_else(length(out)>0, a, c), "\n")
-  cat(if_else(length(ifp)>0, b, d),"\n")
+             toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
+  c <- "No se encontraron observaciones con datos atipicos."
+  d <- "No se encontraron observaciones con una alta influencia"
+  cat(if_else(length(out)>0, a, c),"\n\n",
+      if_else(length(ifp)>0, b, d))
 
 }
 
@@ -99,35 +100,78 @@ out_inf_points <- function(data, var_est){
 #'@return A cat summary
 #'@export
 Summ_all_data <- function(data, var_est=NULL){
-  int_dat <- introduce(data)
-  ss1 <- paste("La base de datos consta de", int_dat$columns, "columnas de", int_dat$rows,
-               "observaciones cada una y con un total de" , int_dat$total_missing_values,
+  dataset <- data
+  tipoNum <- sum(sapply(data, class) %in% c("double", "numeric"))
+  tipoDis <- ncol(data) - tipoNum
+  tipoNAs <- sum(sapply(as.data.frame(sapply(data, is.na)),sum)>nrow(data)*0.8)
+
+  ss1 <- paste("La base de datos consta de", ncol(data), "columnas de", nrow(data),
+               "observaciones cada una y con un total de" , sum(is.na(data)),
                "valores perdidos.\n",
-               "De estas columnas,", int_dat$discrete_columns,
-               "son discretas,", int_dat$continuous_columns, "son continuas y", int_dat$all_missing_columns,
-               "estan completamente vacias.\n")
+               "De estas columnas,", tipoDis,
+               "son discretas,", tipoNum, "son continuas y", tipoNAs,
+               "estan completamente vacias.")
 
   if(is.null(var_est)){
-    return(cat(ss1))
+    e <- f <- ""
+
+    if(tipoNum>2){
+      e <- "Dado que no has ingresado una variable de estudio, te sugerimos que realices un analisis PCA"
+    }
+
+    if(tipoDis>2){
+      f <- "Dado que no has ingresado una variable de estudio, te sugerimos que realices un analisis MCA"
+    }
+    return(cat(ss1, "\n\n", e, "\n\n", f))
   }else{
-    data_aux <- data[which(sapply(data, class)=="numeric")]
-    data_aux2 <- data_aux[-which(names(data_aux)==var_est)]
-    model <- lm(data_aux[[var_est]] ~ ., data = data_aux2)
 
-    ati <- ols_plot_resid_stud_fit(model, print_plot = FALSE)
-    out <- ati$plot$data[as.vector(ati$plot$data["color"] == "outlier"),]$obs
-    inf <- ols_plot_cooksd_bar(model, print_plot = FALSE)
-    ifp <- inf$plot$data[as.vector(inf$plot$data["color"] == "outlier"),]$obs
+    cVar <- class(data[[var_est]]) == "numeric"
+    nFactor <- length(unique(data[[var_est]]))
 
-    a <- paste("Cuidado, se identificaron las siguientes observaciones con datos atipicos **",
-               toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.\n")
-    b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
-               toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.\n")
-    c <- "No se encontraron observaciones con datos atipicos.\n"
-    d <- "No se encontraron observaciones con una alta influencia.\n"
-    cat(ss1, "\n")
-    cat(if_else(length(out)>0, a, c), "\n")
-    cat(if_else(length(ifp)>0, b, d), "\n")
+    e <- f <- g <- ""
+
+    if(tipoNum>2){
+      e <- "Te sugerimos que realices un analisis PCA para intentar reducir dimensiones"
+    }
+
+    if(tipoDis>2){
+      f <- "Te sugerimos que realices un analisis MCA para intentar reducir dimensiones"
+    }
+
+    if(cVar){
+      g <- "Y posteriormente realizar un modelo lineal"
+
+      data_aux <- data[which(sapply(data, class)=="numeric")]
+      data_aux2 <- data_aux[-which(names(data_aux)==var_est)]
+      model <- lm(data_aux[[var_est]] ~ ., data = data_aux2)
+
+      ati <- ols_plot_resid_stud_fit(model, print_plot = FALSE)
+      out <- ati$plot$data[as.vector(ati$plot$data["color"] == "outlier"),]$obs
+      inf <- ols_plot_cooksd_bar(model, print_plot = FALSE)
+      ifp <- inf$plot$data[as.vector(inf$plot$data["color"] == "outlier"),]$obs
+
+      a <- paste("Cuidado, se identificaron las siguientes observaciones con datos atipicos **",
+                 toString(out), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
+      b <- paste("Cuidado, se identificaron que las siguientes observaciones tienen una alta influencia **",
+                 toString(ifp), "**\n Se recomienda verificar que esta no sea un error de captura y, de ser asi, eliminarla.")
+      c <- "No se encontraron observaciones con datos atipicos."
+      d <- "No se encontraron observaciones con una alta influencia"
+
+      cat(ss1, "\n\n",if_else(length(out)>0, a, c),"\n\n",
+          if_else(length(ifp)>0, b, d), "\n\n", e, "\n\n", f, "\n\n", g)
+    }else{
+      if(nFactor==2){
+        g <- "Y posteriormente reaalizar un modelo lineal generalizado"
+
+        cat(ss1, "\n\n", e, "\n\n", f, "\n\n", g)
+      }
+      if(nFactor>2){
+        g <- "Luego, realizar un analisis de cluster y finalmente, si se puede agrupar en dos conjuntos,
+        realizar un modelo lineal generalizado."
+
+        cat(ss1, "\n\n", e, "\n\n", f, "\n\n", g)
+      }
+    }
   }
 }
 
@@ -347,7 +391,7 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
     )
   }
 
-  return(list(modelo = model, test=test))
+  return(model)
 }
 
 
@@ -360,22 +404,13 @@ crear_modelo <- function(data, var_est, var_exp, intercep=NULL, method, percTest
 #'@export
 corSig <- function(base, umbrales){
   cormat <- cor(base)
-  aux <- 0
-  cat("Las variables:\n")
   for (umbral in umbrales) {
     for (i in 1:(nrow(cormat)-1)) {
       for (j in (i+1):ncol(cormat)) {
         if (abs(cormat[i,j]) > umbral & abs(cormat[i,j]) < umbral+.1) {
-          cat(names(base)[i], "y", names(base)[j], "tienen una correlacion de", round(cormat[i,j],4), "\n")
-          aux <- aux + 1
+          cat("Las variables:", names(base)[i], "y", names(base)[j], "tienen una correlacion de", round(cormat[i,j],4), "\n")
         }
       }
     }
-  }
-
-  if(aux/ncol(base) > 1/3){
-    cat(paste("Dado que", aux, "de las columnas tiene(n) una correlacion significativa, es muy probable que se pueda reducir dimensiones.\n"))
-  }else{
-    cat(paste("Dado que solo", aux, "de las columnas tiene(n) una correlacion significativa, va a ser complicado reducir dimensiones.\n"))
   }
 }
